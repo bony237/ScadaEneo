@@ -1,0 +1,183 @@
+$colorBg: rgba(234, 234, 234, 0.2);
+#calque {
+  p {
+    background-color: $colorBg;
+    border-radius: 12.5%;
+  }
+  .rond, .rond:before, .rond:after{
+    border-radius: 45%;
+  }
+  .carre, .carre:before, .carre:after{
+    border-radius: 12.5%;
+  }
+}
+%elmPrepare {
+  background-color: rgba(234, 234, 234, 0.63);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-clip: content-box;
+}
+
+%elmParentBeforeAfter{
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  background: linear-gradient(45deg, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000);
+  background-size: 400%;
+  width: 110%;
+  height: 110%;
+  z-index: -1;
+  animation: animate 20s linear infinite;
+}
+%elmChildBeforeAfter{
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  background: linear-gradient(45deg, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000);
+  background-size: 400%;
+  width: 110%;
+  height: 110%;
+  z-index: -1;
+  animation: animate 8s linear infinite;
+}
+%elmUpdateBeforeAfter{
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  background: linear-gradient(45deg, #4287f5, #62a8f3, #3dcbe3, #e6f1f7, #aca1cf, #4287f5, #62a8f3, #3dcbe3, #e6f1f7, #aca1cf);
+  background-size: 400%;
+  width: 110%;
+  height: 110%;
+  z-index: -1;
+  animation: animate 20s linear infinite;
+}
+
+@keyframes animate {
+  0%{
+    background-position: 0 0;
+  }
+  50%{
+    background-position: 300% 0;
+  }
+  100%{
+    background-position: 0 0;
+  }
+}
+
+#parentDialogue{
+  li{
+    margin-left: 40px;
+  }
+}
+
+.pdfViewer .page{
+  box-sizing: initial;
+}
+.iconPinDialog{
+  width: 40px;
+  height: 40px;
+}
+
+#viewerContainer.move{       /* plus another class*/
+
+  transition-property: left;
+  left: 32%;
+  @media (min-width: 1900px){
+    left: 485px;
+  }
+}
+
+#parentDialogue{
+
+  width: 33%;
+  @media (min-width: 1900px){
+    width: 480px;
+  }
+  display: none;
+}
+
+
+
+#viewerContainer.supprMove{       /* plus another class*/
+
+  transition-property: left;
+  left: 0;
+}
+
+
+#calque{
+  .evidenceParent, .evidenceChild{
+    @extend %elmPrepare;
+  }
+
+  .evidenceParent:before,
+  .evidenceParent:after{
+    @extend %elmParentBeforeAfter;
+  }
+
+  .evidenceChild:before,
+  .evidenceChild:after{
+    @extend %elmChildBeforeAfter;
+  }
+
+  .evidenceParent:after,
+  .evidenceChild:after,
+  .elmToUpdate:after{
+    filter: blur(20px);
+  }
+
+
+  .elmToUpdate{
+    @extend %elmPrepare;
+  }
+  .elmToUpdate:before,
+  .elmToUpdate:after{
+    @extend %elmUpdateBeforeAfter;
+  }
+
+  .neighbour{
+    box-shadow: -3px 3px 33px 5px blue;
+  }
+
+  .commandMode{
+    span{
+      display: none;
+    }
+  }
+  .editMode{
+    span{
+      display: inline;
+    }
+  }
+
+
+  .OCR{
+    background-image: url("pins/noPinCalque.png");
+  }
+
+  .OCR.yellow{
+    background-image: url("pins/yellowPinCalque.png");
+  }
+  .OCR.red{
+    background-image: url("pins/redPinCalque.png");
+  }
+  .OCR.blue{
+    background-image: url("pins/bluePinCalque.png");
+  }
+  .OCR.green{
+    background-image: url("pins/greenPinCalque.png");
+  }
+}
+
+#toolbarViewer{
+  a{
+    position: absolute;
+    top:16px;
+    left: auto;
+  }
+}
+

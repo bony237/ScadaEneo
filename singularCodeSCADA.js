@@ -13,7 +13,7 @@ var page1 = null,
 const pctWidthElmPoste = (70/15748)*100,                            // cte du rapport voulue entre "width" element par rapport au calque
     pctHeightElmPoste = (70/7875)*100,                           // cte du rapport voulue entre "height" element par rapport au calque
     pctWidthElmOCR = (40/15748)*100,
-    pctHeightElmOCR = (40/15748)*100;
+    pctHeightElmOCR = (40/7875)*100;
 
 
 calque.id = 'calque';
@@ -55,6 +55,9 @@ var observerPdf = new MutationObserver(function (mutationList) {       // tracke
                     elmToShut.dispatchEvent(event);           // simuler un click pour enlever l'apparition génante d'un élement (apparition ordonnée par un fichier JS difficile d'accès)
                 }
 
+                // fonction appel de la BD si elle existe !! et prendre les paramètres pct pour la création des élements sur le calque !!
+                // création de p(span)
+
                 throw BreakException;
             }
         });
@@ -81,27 +84,34 @@ var isEdit = false,                                                     // état
     trace = null,                                                       // sctokage de l'élement en cours d'utilisation dans la boîte de dialogueue
     neighbours = [],
     viewer = document.getElementById('viewerContainer'),                 // bloc pdf à dépacer
-    saveClassAddElm = {},
-    eCreer = null,
+    saveClassAddToElm = {
+        'evidenceParent':[],
+        'evidenceChild':[],
+        'elmToUpdate':[],
+        'neighbour':[]
+    },
+    eCreer = {},
     formEdit= document.querySelector('#editDialog form'),                 // formulaire EDITION
     formCommand  = document.querySelector('#commandDialog form'),         // formulaire COMMANDE
     commandFormHasChange = false,
     editFormHasChange = false,
+    goUrl = '',
     submission = {
-        'type': '',
+        /*'type': '',
         'percXY': [],
-        'target': '',
+        'targetId': '',
         'neighboursOk': [],
         'typeElm': '',
-        'depart': '',
+        'departInstall': '',
         'formPoste': '',
+        'powerPoste': '',
         'nom': '',
         'code': '',
         'nomAgence': '',
         'nomDex': '',
         'location': '',
         'theCommand': '',
-        'commentaireCommand': ''
+        'commentaireCommand': ''*/
     };
 
 //alert('jesus');
@@ -112,7 +122,7 @@ var isEdit = false,                                                     // état
     viewer.className = 'move';
     /*$('#commandDialog').hide();
     $('#editDialog').show();
-    $('#depart').parent().hide();
+    $('#departInstall').parent().hide();
     $('#powFormPoste').hide();
 
     formCommand.reset();                                                    // réinitialiser les deux formulaires
@@ -160,32 +170,59 @@ $('#supprModifDiaEdit').find('.modifyElm').click(function () {
 
 });      // avant garde de la suppression ou de la modification d'un élement
 
+$('#supprModifDiaEdit').find('.deleteElm').click(function () {
+    deleteElmProccess(trace);
+
+});      // suppression élement du réseau
+
 
 $('[name = "typeElm"]').click(function () {
 
-    //submission.percXY = [(eCreer.offsetX*100/widthCalque - pctWidthElmOCR/2) + '%', (eCreer.offsetY*100/heightCalque - pctHeightElmOCR/2) + '%'];
+    submission.percXY = [(eCreer.X*100/widthCalque - pctWidthElmOCR/2) + '%', (eCreer.Y*100/heightCalque - pctHeightElmOCR/2) + '%'];
+
+    submission.theCommand = 'close';
 
     if( $('#elmOCRDepart').is(':checked')){
 
-        $('#powFormPoste').hide();
-        $('#depart').parent().show();
-        //submission.typeElm = $('#elmOCRDepart').val();
+        $('#departInstall').prop('required',true).parent().show();
+
+        $('#powFormPoste').hide().find('input').prop('required',false);
+        $('#powFormPoste').find(':radio').prop('checked',false);
+        $('#powerPoste').val('');
+
+        submission.typeElm = $('#elmOCRDepart').val();
+        delete submission.powerPoste;
+        delete submission.formPoste;
     }
     else if($('#elmPosteChoix').is(':checked')){
 
-        $('#depart').parent().hide();
-        $('#powFormPoste').show();
-        //submission.percXY = [(eCreer.offsetX*100/widthCalque - pctWidthElmPoste/2) + '%', (eCreer.offsetY*100/heightCalque - pctHeightElmPoste/2) + '%'];
-        //submission.typeElm = $('#elmPosteChoix').val();
-    }
-    else{
-        $('#depart').parent().hide();
-        $('#powFormPoste').hide();
+        $('#departInstall').prop('required',false).parent().hide();
+        $('#departInstall').val('');
 
-        //if($('#elmOCRChoix').is(':checked'))  submission.typeElm = $('#elmOCRChoix').val();
-        //else    submission.typeElm = $('#elmIACMChoix').val();
+        $('#powFormPoste').show().find('input').prop('required',true);
+        submission.percXY = [(eCreer.X*100/widthCalque - pctWidthElmPoste/2) + '%', (eCreer.Y*100/heightCalque - pctHeightElmPoste/2) + '%'];
+        submission.typeElm = $('#elmPosteChoix').val();
+        delete submission.departInstall;
+        delete submission.theCommand;
     }
+    else {
+        $('#departInstall').prop('required',false).parent().hide();
+        $('#departInstall').val('');
+
+        $('#powFormPoste').hide().find('input').prop('required',false);
+        $('#powFormPoste').find(':radio').prop('checked',false);
+        $('#powerPoste').val('');
+
+        if($('#elmOCRChoix').is(':checked'))  submission.typeElm = $('#elmOCRChoix').val();
+        else    submission.typeElm = $('#elmIACMChoix').val();
+
+        delete submission.powerPoste;
+        delete submission.formPoste;
+        delete submission.departInstall;
+    }
+
 });                         // faire apparaitre le champ pour le nom du départ en cas de click sur OCR de départ
+
 
 
 $('#editDialog').find('input').change(function () {
@@ -207,33 +244,35 @@ thingsToDo = {
 
     'commandElmOCR': function (e) {
         // commande d'un OCR
-        supprClassAddedElm(saveClassAddElm);    //  fonction de l'effet visuel appliqué aux précedents element à travers css via les noms de classe
-        restituteInfosOCR(e, 'command');        // fonction qui restitue les infos de l'élement (aval-traitement recursif, etat pin, infos, def neighbours)
+        supprClassAddedElm();    //  fonction de l'effet visuel appliqué aux précedents element à travers css via les noms de classe
+        //restituteInfosOCR(e, 'command');        // fonction qui restitue les infos de l'élement (aval-traitement recursif, etat pin, infos, def neighbours)
         e.target.classList.add('evidenceParent');
-        saveClassAddElm['evidenceParent'].push(e.target);
+        saveClassAddToElm['evidenceParent'].push(e.target.id);
         trace = e.target;
 
+        if(isDia)   $('#parentDialogue').fadeOut('fast');
         formCommand.reset();
         viewer.className = 'move';
         $('#parentDialogue').show(500);
         isDia = true;
 
-        submission.type = 'command';
-        submission.target = e.target;
+        submission.targetId = e.target.id;
+
+        goUrl = 'setElm.php';
     },
 
     'selectORunselectNeighbour': function (e) {
         // selection ou déselection d'un voisin
-        alert('select or deselect');
-        neighbours.forEach(function (voisin) {
-            voisin.classList.add('neighbour');
-            saveClassAddElm['neighbour'].push(e.target);                                          // sauvegarder le changement pour l'annuler après
-        });
+        //alert('select or deselect');
+
+        $('#editDialog form').show(700);
+        $('#supprModifDiaEdit').hide();
+
         editFormHasChange = true;
-        var num = neighbours.indexOf(e.target);
+        var num = neighbours.indexOf(e.target.id);
         if(num < 0){
             // selected
-            neighbours.push(e.target);      // add to table neighbours
+            neighbours.push(e.target.id);      // add to table neighbours
             e.target.classList.add('neighbour');
         }else{
             // deselected
@@ -241,40 +280,54 @@ thingsToDo = {
             e.target.classList.remove('neighbour');
         }
 
+        $('#neigbhours').html('');
+        neighbours.forEach(function (t) {
+            if(t !== ''){
+                var neighActPrint = document.createElement('li');
+                $(neighActPrint).text($('#' + t).find('+ ul').find('.nom').text()).appendTo('#neigbhours');
+            }
+        });
 
+        saveClassAddToElm['neighbour'] = neighbours;
         submission.neighboursOk = neighbours;
 
     },
 
     'modifyElm': function (e) {
         // modification d'un élement
-        supprClassAddedElm(saveClassAddElm);
-        restituteInfos(e, 'edit');                                  // fonction qui restitue les infos de création de l'élement
-        e.target.classList.add('elmUpdate');
-        saveClassAddElm['elmUpdate'].push(e.target);
+        formEdit.reset();
+        supprClassAddedElm();
+        restituteInfosEdit(e.target);                                  // fonction qui restitue les infos de création de l'élement (restituer les voisins entant que tableau et les y attribuer la classe neighbour)
+        e.target.classList.add('elmToUpdate');
+        saveClassAddToElm['elmToUpdate'].push(e.target.id);
         trace = e.target;
 
-        $('#depart').parent().hide();
+        $('#departInstall').parent().hide();
         $('#powFormPoste').hide();
 
         $('#optionEditTitle').text('Modification');
         $('#optionEditSubmit').val('Modifier');
         $('#supprModifDiaEdit').show().find('+ form').hide();       //show supprim possibility
-        formEdit.reset();
+
         $('#record').show();
 
+        if(isDia)   $('#parentDialogue').fadeOut('fast');
         viewer.className = 'move';                                  // ne pas enregistrer ce changement de classe car trop standart
         $('#parentDialogue').show(500);
         isDia = true;
 
-        submission.type = 'modify';
-        submission.target = e.target;
+        submission.targetId = e.target.id;
+
+        //eCreer.X = e.offsetX;                                recalcul de eCreer de départ
+        //eCreer.Y = e.offsetY;
+
+        goUrl = 'setElm.php';
     },
 
     'createElm': function (e) {
         // création d'un élement
-        supprClassAddedElm(saveClassAddElm);
-        $('#depart').parent().hide();
+        supprClassAddedElm();
+        $('#departInstall').parent().hide();
         $('#powFormPoste').hide();
 
         $('#optionEditTitle').text('Création');
@@ -283,20 +336,22 @@ thingsToDo = {
         formEdit.reset();
         $('#record').hide();                                        // hide the section save data
 
+        if(isDia)   $('#parentDialogue').fadeOut('fast');
         viewer.className = 'move';
         $('#parentDialogue').show(500);
         isDia = true;
 
-        submission.type = 'create';
-        eCreer = e;
+        //submission.type = 'create';
+        eCreer.X = e.offsetX;
+        eCreer.Y = e.offsetY;
+
+        goUrl = 'insertElm.php';
     },
 
     'changeMode': function () {
         //changer de mode
-        supprClassAddedElm(saveClassAddElm);
-        isDia = false;
-        $('#parentDialogue').hide(500);
-        viewer.className = 'supprMove';
+
+        thingsToDo['close']();
 
         isEdit = !isEdit;
         isCommand = !isCommand;
@@ -321,21 +376,19 @@ thingsToDo = {
 
     'close': function () {
 
-        supprClassAddedElm(saveClassAddElm);
+        trace = null;
+        supprClassAddedElm();
+        submission = {};
+        neighbours = [];
+        eCreer = {};
+        goUrl = '';
         isDia = false;
         editFormHasChange = false;
         commandFormHasChange = false;
         $('#parentDialogue').hide(500);
         viewer.className = 'supprMove';
-    }/*,
+    }
 
-    'appearLess': function (e) {
-        alert('survol Less infos');
-    },
-
-    'nothing': function () {
-        alert('rien à faire');
-    }*/
 };
 
 function whatToDo(e, code){
@@ -367,12 +420,6 @@ function whatToDo(e, code){
             if(isEdit && !isDia && calque)  return 'createElm';
             if(isEdit && !isDia && !calque)  return 'modifyElm';*/
             break;
-        /*case 'Ho':
-            if(!calque){
-                if(isEdit)  return 'appearLess';
-                if(isCommand)  return 'appearAll';
-            }
-            break;*/
 
         default:    return 'nothing';
     }
@@ -391,15 +438,16 @@ calque.addEventListener('dblclick', function (e) {
 
 
 $('form').submit(function (event) {
-    //alert('rien');
 
-    verify();
+    if($('#nom').val() !== '')   submission.nom = $('#nom').val();
 
-    submission.nom = $('#nom').val();
-    submission.code = $('#code').val();
-    submission.nomAgence = $('#nomAgence').val();
-    submission.nomDex = $('#nomDex').val();
-    submission.location = $('#location').val();
+    if($('#code').val() !== '')    submission.code = $('#code').val();
+
+    if($('#departInstall').val() !== '')    submission.departInstall = $('#departInstall').val();
+
+    if($('#nomAgence').val() !== '')  submission.nomAgence = $('#nomAgence').val();
+    if($('#nomDex').val() !== '')    submission.nomDex = $('#nomDex').val();
+    if($('#location').val() !== '')    submission.location = $('#location').val();
 
     $('[name="formPoste"]').each(function () {
 
@@ -415,28 +463,45 @@ $('form').submit(function (event) {
     });
 
 
+    if($('#powerPoste').val() !== '')    submission.powerPoste = $('#powerPoste').val();
 
-    submission.commentaireCommand = $('#commentaireCommand').val();
+    if($('#commentaireCommand').val() !== '')    submission.commentaireCommand = $('#commentaireCommand').val();
 
-//    console.log(submission);
+    if(neighbours.length > 0)   submission.neighboursOk = neighbours;
 
-    /*$.ajax({
-        type:'POST',
-        url:'request.php',
-        success:function(data){console.log(data)},
-        error:function(){console.log("la rêquete n\'a pas aboutit")}
-    });*/
+
+    console.log(submission);
+    //alert(submission.typeElm);
+
+
+    $.ajax({
+            type:'POST',
+            url: goUrl,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            data: JSON.stringify(submission),
+            success: function(newId){
+
+                createElmProcess(newId, submission);
+                //updateElmProcess(trace.id, submission);
+
+                thingsToDo['close']();
+            },
+            error: function (result, statut, err) {
+                console.log('Problems');
+                console.log(statut);
+            },
+            complete: function (result, statut, err) {
+                console.log('complete');
+                console.log(statut);
+            }
+        });
 
 
     event.preventDefault();
 
-});
 
-/*calque.addEventListener('mouseover', function (e) {
-    //alert('hello');
-    var doThis = whatToDo(e, 'Ho');
-    thingsToDo[doThis](e);
-}, false);*/
+
+});
 
 
 
@@ -475,13 +540,164 @@ function beforeWhatToDo(type) {
 
 }
 
-function supprClassAddedElm(saveClassAddElm) {
+function supprClassAddedElm() {
 
-    for (var classAdded in saveClassAddElm){
-        saveClassAddElm[classAdded].forEach(function (targetElm) {
-            targetElm.classList.remove(classAdded);
+    $.each( saveClassAddToElm, function (theClass, theIds) {
+        theIds.forEach(function (t) {
+            if(t !== '')    $('#' + t).removeClass(theClass);
         });
+    });
+
+    saveClassAddToElm = {
+        'evidenceParent':[],
+        'evidenceChild':[],
+        'elmToUpdate':[],
+        'neighbour':[]
     }
+
+}
+
+function restituteInfosEdit(targetElmToEdit) {
+
+    //recalculer les vrais offsetX et offsetY de l'élement
+
+    if($('#' + targetElmToEdit.id).find('+ ul').find('.typeElm').text() === 'poste'){
+        eCreer.X = (parseInt(targetElmToEdit.style.left) + pctWidthElmPoste/2)*widthCalque/100;
+        eCreer.Y = (parseInt(targetElmToEdit.style.top) + pctHeightElmPoste/2)*heightCalque/100;
+    }else {
+        eCreer.X = (parseInt(targetElmToEdit.style.left) + pctWidthElmOCR/2)*widthCalque/100;
+        eCreer.Y = (parseInt(targetElmToEdit.style.top) + pctHeightElmOCR/2)*heightCalque/100;
+    }
+
+    // restituer les voisins de l'élemnt à editer
+    var neighboursText = $('#' + targetElmToEdit.id).find('+ ul').find('.neighboursOk').text();
+    neighbours = neighboursText.split(';');
+    neighbours.forEach(function (voisinId) {
+        $(voisinId).addClass('neighbour');
+    });
+    saveClassAddToElm['neighbour'] = neighbours;
+
+    neighbours.forEach(function (t) {
+        if(t !== ''){
+            var neighActPrint = document.createElement('li');
+            $(neighActPrint).text($('#' + t).find('+ ul').find('.nom').text()).appendTo('#neigbhours');
+        }
+    });
+    $('#neigbhours').html('');
+
+
+    // restituer les infos (records) de la bte de dialogue (pas de class list..., )
+
+    var infosAll = $('#' + targetElmToEdit.id).find('+ ul').html();
+
+    $('#record').find('ul').html(infosAll).find('li').removeClass('list-group-item p-2');
+
+    // restituer le formulaire edit
+
+    /*$('input[type="text"]').each(function () {
+        //var nomInput = $(this).attr('name');
+
+        $(this).val('jesus');
+    });
+
+    //var valOfElmType = $('#record').find('.typeElm').text();
+    //$('input[value = valO]')*/
+
+}
+
+function deleteElmProccess(trace) {
+    var idElm = trace.id;
+
+    $.ajax({
+        type:'POST',
+        url: 'deleteElm.php',
+        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+        data: idElm,
+        success: function(data){
+            $('#'+ idElm ).remove().find('+ ul').remove();
+            thingsToDo['close']();
+        },
+        error: function (result, statut, err) {
+            console.log('Problems');
+            console.log(statut);
+        },
+        complete: function (result, statut, err) {
+            console.log('complete');
+            console.log(statut);
+        }
+    });
+}
+
+function createElmProcess(newId, submissionCreer) {
+
+    var heightElm = '',
+        widthElm = '',
+        //divParent = document.createElement('div'),
+        elm = document.createElement('div'),
+        infos = document.createElement('ul');
+
+    if (submissionCreer.typeElm === 'elmPoste'){
+        heightElm = pctHeightElmPoste + '%';
+        widthElm = pctWidthElmPoste + '%';
+
+        $(elm).addClass('poste');
+        if(submissionCreer.formPoste === 'rond') $(elm).addClass('rond');
+        else $(elm).addClass('carre');
+
+    }else {
+        heightElm = pctHeightElmOCR + '%';
+        widthElm = pctWidthElmOCR + '%';
+
+        $(elm).addClass('OCR');
+    }
+
+
+
+    if(submissionCreer.neighboursOk) submissionCreer.neighboursOk = submissionCreer.neighboursOk.join(';');
+
+
+
+    $(elm).css({'font-size': 'inherit', 'position':'absolute', 'left':submissionCreer.percXY[0], 'top':submissionCreer.percXY[1], 'width':widthElm, 'height':heightElm})
+        .attr({'data-placement':'bottom', 'data-toggle':'popover','title':'Element réseau', 'data-trigger':'hover', 'id':newId})
+        .appendTo('#calque');
+
+    $(infos).html(
+        '             <li class="list-group-item d-none p-2" >Nom : <i class="nom font-weight-bold text-info"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Type : <i class="typeElm font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Départ Actuel : <i class="departActuel font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Départ Installé : <i class="departInstall font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Puissance : <i class="powerPoste font-weight-bold"></i> MW</li>' +
+        '             <li class="list-group-item d-none p-2" >Etat : <i class="theCommand font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Code : <i class="code font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Agence : <i class="nomAgence font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >DEX : <i class="nomDex font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Localisation : <i class="location font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Voisins : <i class="neighboursOk font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Ordre : <i class="ordre font-weight-bold"></i></li>'
+    ).css('display','none').addClass('list-group').appendTo('#calque');
+
+
+    //$(divParent).appendTo('#calque');
+
+    $.each( submissionCreer, function (key, value) {
+        $(infos).find('i').each(function () {
+            if($(this).hasClass(key)){
+                $(this).text(value);
+                if(key !== 'ordre' && key !== 'neighboursOk'){
+                    $(this).parent().removeClass('d-none');
+                }
+                //$(this).text(value).parent().removeClass('d-none');                         // pour le développement
+            }
+        });
+    });
+
+
+    $('#'+ newId).popover({
+        html: true,
+        content : function(){
+            return $(this).find('+ ul').html();
+        }
+    });
 
 }
 

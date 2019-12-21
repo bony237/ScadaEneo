@@ -1,6 +1,6 @@
-$colorBg: rgba(234, 234, 234, 0.2);
+$colorBg: rgba(234, 234, 234, 0.89);
 #calque {
-  p {
+  .OCR, .poste{
     background-color: $colorBg;
     border-radius: 12.5%;
   }

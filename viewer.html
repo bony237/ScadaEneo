@@ -26,7 +26,7 @@ See https://github.com/adobe-type-tools/cmap-resources
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="google" content="notranslate">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>PDF.js viewer</title>
+    <title>SCADA ENEO HTA Dla OUEST</title>
 
 
 
@@ -336,7 +336,7 @@ See https://github.com/adobe-type-tools/cmap-resources
             <div id="editDialog" class="mt-4">
               <h3 class="font-weight-bolder mb-4"><span id="optionEditTitle">Création</span> Organe réseau :</h3>
               <div id="supprModifDiaEdit" class="mb-3">
-                  <button type="button" class="btn btn-lg btn-danger font-weight-bolder">Supprimer l'organe</button> ou
+                  <button type="button" class="deleteElm btn btn-lg btn-danger font-weight-bolder">Supprimer l'organe</button> ou
                   <button type="button" class="modifyElm btn btn btn-light font-weight-bolder">Modifier l'organe</button>
               </div>
               <form>
@@ -345,7 +345,7 @@ See https://github.com/adobe-type-tools/cmap-resources
                     <legend class="text-muted">Type d'organe réseau</legend>
                     <div class="form-group font-weight-bold">
                       <div class="form-check form-check-inline" title="Organe de Coupure Réseau au niveau du départ">
-                        <input id="elmOCRDepart" name="typeElm" type="radio" value="elmOCRPoste" class="form-check-input">
+                        <input id="elmOCRDepart" name="typeElm" type="radio" value="elmOCRDepart" class="form-check-input" required>
                         <label for="elmOCRDepart" class="form-check-label">OCR départ</label>
                       </div>
 
@@ -364,17 +364,17 @@ See https://github.com/adobe-type-tools/cmap-resources
                       </div>
                     </div>
                   </fieldset>
-                  <div class="form-group"><label for="depart">Départ : </label>
-                      <input id="depart" name="depart" type="text" placeholder="nom du départ" class="form-control-sm col-10 mt-2"></div>
+                  <div class="form-group"><label for="departInstall">Départ : </label>
+                      <input id="departInstall" name="departInstall" type="text" placeholder="nom du départ" class="form-control-sm col-10 mt-2"></div>
 
                   <div class="form-group text-center mt-2 text-info bg-dark rounded font-weight-bolder" id="powFormPoste">
                       Forme :
                       <div class="form-check form-check-inline ml-3" title="forme ronde">
-                          <input id="formPosteRd" name="formPoste" type="radio" value="ronde" class="form-check-input">
+                          <input id="formPosteRd" name="formPoste" type="radio" value="rond" class="form-check-input">
                           <label class="form-check-label" for="formPosteRd">cercle <i class="fa fa-circle-o"></i></label>
                       </div>
                       <div class="form-check form-check-inline" title="forme carré">
-                          <input id="formPosteCa" name="formPoste" type="radio" value="carré" class="form-check-input">
+                          <input id="formPosteCa" name="formPoste" type="radio" value="carre" class="form-check-input">
                           <label class="form-check-label" for="formPosteCa">carré <i class="fa fa-square-o"></i></label>
                       </div>
 

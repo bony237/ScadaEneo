@@ -40,10 +40,10 @@ var observerPdf = new MutationObserver(function (mutationList) {       // tracke
 
                 page1.parentNode.appendChild(calque);               // ajout du calque dans le DOM
 
-                widthCalque = parseInt(page1.style.width);
-                heightCalque = parseInt(page1.style.height);
+                widthCalque = parseFloat(page1.style.width);
+                heightCalque = parseFloat(page1.style.height);
 
-                calque.style.fontSize = ((pctWidthElmPoste*parseInt(page1.style.width))/40) + '%';     //calcul et fixation dans css d'une variable servant au font size
+                calque.style.fontSize = ((pctWidthElmPoste*parseFloat(page1.style.width))/40) + '%';     //calcul et fixation dans css d'une variable servant au font size
 
                 if(elmToShut.classList.contains('toggled')){
                     var event = new MouseEvent('click', {
@@ -83,6 +83,10 @@ var isEdit = false,                                                     // état
     isDia = false,                                                      // état du bloc de dialogue (command ou edit)
     trace = null,                                                       // sctokage de l'élement en cours d'utilisation dans la boîte de dialogueue
     neighbours = [],
+    neighboursMvt = {
+        'add':[],
+        'del':[]
+    },
     viewer = document.getElementById('viewerContainer'),                 // bloc pdf à dépacer
     saveClassAddToElm = {
         'evidenceParent':[],
@@ -90,7 +94,7 @@ var isEdit = false,                                                     // état
         'elmToUpdate':[],
         'neighbour':[]
     },
-    eCreer = {},
+    //eCreer = {},
     formEdit= document.querySelector('#editDialog form'),                 // formulaire EDITION
     formCommand  = document.querySelector('#commandDialog form'),         // formulaire COMMANDE
     commandFormHasChange = false,
@@ -120,12 +124,9 @@ var isEdit = false,                                                     // état
     $('#parentDialogue').show();                                             // cacher la section dialogue au debut de fonctionnement de l'app
     //$('#editDialog').hide();
     viewer.className = 'move';
-    /*$('#commandDialog').hide();
-    $('#editDialog').show();
-    $('#departInstall').parent().hide();
-    $('#powFormPoste').hide();
+    /*
 
-    formCommand.reset();                                                    // réinitialiser les deux formulaires
+     formCommand.reset();                                                    // réinitialiser les deux formulaires
     formEdit.reset();
 
     viewer.className = 'move';*/
@@ -171,15 +172,13 @@ $('#supprModifDiaEdit').find('.modifyElm').click(function () {
 });      // avant garde de la suppression ou de la modification d'un élement
 
 $('#supprModifDiaEdit').find('.deleteElm').click(function () {
-    deleteElmProccess(trace);
+    deleteElmProccess(trace.id);
 
 });      // suppression élement du réseau
 
 
 $('[name = "typeElm"]').click(function () {
-
-    submission.percXY = [(eCreer.X*100/widthCalque - pctWidthElmOCR/2) + '%', (eCreer.Y*100/heightCalque - pctHeightElmOCR/2) + '%'];
-
+console.log('me voici');
     submission.theCommand = 'close';
 
     if( $('#elmOCRDepart').is(':checked')){
@@ -191,8 +190,8 @@ $('[name = "typeElm"]').click(function () {
         $('#powerPoste').val('');
 
         submission.typeElm = $('#elmOCRDepart').val();
-        delete submission.powerPoste;
-        delete submission.formPoste;
+        submission.powerPoste = '';
+        submission.formPoste = '';
     }
     else if($('#elmPosteChoix').is(':checked')){
 
@@ -200,10 +199,9 @@ $('[name = "typeElm"]').click(function () {
         $('#departInstall').val('');
 
         $('#powFormPoste').show().find('input').prop('required',true);
-        submission.percXY = [(eCreer.X*100/widthCalque - pctWidthElmPoste/2) + '%', (eCreer.Y*100/heightCalque - pctHeightElmPoste/2) + '%'];
         submission.typeElm = $('#elmPosteChoix').val();
-        delete submission.departInstall;
-        delete submission.theCommand;
+        submission.departInstall = '';
+        submission.theCommand = '';
     }
     else {
         $('#departInstall').prop('required',false).parent().hide();
@@ -216,22 +214,30 @@ $('[name = "typeElm"]').click(function () {
         if($('#elmOCRChoix').is(':checked'))  submission.typeElm = $('#elmOCRChoix').val();
         else    submission.typeElm = $('#elmIACMChoix').val();
 
-        delete submission.powerPoste;
-        delete submission.formPoste;
-        delete submission.departInstall;
+        submission.powerPoste = '';
+        submission.formPoste = '';
+        submission.departInstall = '';
     }
 
 });                         // faire apparaitre le champ pour le nom du départ en cas de click sur OCR de départ
 
 
 
-$('#editDialog').find('input').change(function () {
-    editFormHasChange = true;
-});
+$('#editDialog').find('input').each(function () {
+    $(this).focus(function () {
+        editFormHasChange = true;
+        //console.log('focus over ' + $(this).attr('name'));
+    });
+
+});                 // informer d'un changement dans les inputs de editDialog
 
 
-$('#commandDialog').find('input').change(function () {
-    commandFormHasChange = true;
+$('#commandDialog').find('input').each(function () {
+    $(this).focus(function () {
+        commandFormHasChange = true;
+        console.log('focus over ' + $(this).attr('name'));
+    });
+
 });
 
 $('#commandDialog').find('textarea').change(function () {
@@ -244,14 +250,14 @@ thingsToDo = {
 
     'commandElmOCR': function (e) {
         // commande d'un OCR
+        formCommand.reset();
         supprClassAddedElm();    //  fonction de l'effet visuel appliqué aux précedents element à travers css via les noms de classe
-        //restituteInfosOCR(e, 'command');        // fonction qui restitue les infos de l'élement (aval-traitement recursif, etat pin, infos, def neighbours)
+        restituteInfosOCRCommand(e.target.id);        // fonction qui restitue les infos de l'élement (aval-traitement recursif, etat pin, infos, def neighbours)
         e.target.classList.add('evidenceParent');
         saveClassAddToElm['evidenceParent'].push(e.target.id);
         trace = e.target;
 
         if(isDia)   $('#parentDialogue').fadeOut('fast');
-        formCommand.reset();
         viewer.className = 'move';
         $('#parentDialogue').show(500);
         isDia = true;
@@ -267,17 +273,30 @@ thingsToDo = {
 
         $('#editDialog form').show(700);
         $('#supprModifDiaEdit').hide();
-
         editFormHasChange = true;
-        var num = neighbours.indexOf(e.target.id);
-        if(num < 0){
+        //console.log('change by neighbours');
+
+
+        var numNeigh = neighbours.indexOf(e.target.id),
+            numAddNeigh = neighboursMvt.add.indexOf(e.target.id),
+            numDelNeigh = neighboursMvt.del.indexOf(e.target.id);
+
+        if(numNeigh < 0){
             // selected
             neighbours.push(e.target.id);      // add to table neighbours
             e.target.classList.add('neighbour');
+
+            if(numDelNeigh > 0) neighboursMvt.del.splice(numNeigh,1);
+            else if(numAddNeigh < 0) neighboursMvt.add.push(e.target.id);
+
         }else{
             // deselected
-            neighbours.splice(num,1);       // delete from table neighbours
+            neighbours.splice(numNeigh,1);       // delete from table neighbours
             e.target.classList.remove('neighbour');
+
+            if(numAddNeigh > 0) neighboursMvt.add.splice(numNeigh,1);
+            else if(numDelNeigh < 0) neighboursMvt.del.push(e.target.id);
+
         }
 
         $('#neigbhours').html('');
@@ -296,14 +315,16 @@ thingsToDo = {
     'modifyElm': function (e) {
         // modification d'un élement
         formEdit.reset();
+        $('#departInstall').parent().hide();
+        $('#powFormPoste').hide();
+
         supprClassAddedElm();
         restituteInfosEdit(e.target);                                  // fonction qui restitue les infos de création de l'élement (restituer les voisins entant que tableau et les y attribuer la classe neighbour)
         e.target.classList.add('elmToUpdate');
         saveClassAddToElm['elmToUpdate'].push(e.target.id);
         trace = e.target;
 
-        $('#departInstall').parent().hide();
-        $('#powFormPoste').hide();
+        //console.log('z-index calque : ' + $('#calque').css('z-index'));
 
         $('#optionEditTitle').text('Modification');
         $('#optionEditSubmit').val('Modifier');
@@ -318,8 +339,6 @@ thingsToDo = {
 
         submission.targetId = e.target.id;
 
-        //eCreer.X = e.offsetX;                                recalcul de eCreer de départ
-        //eCreer.Y = e.offsetY;
 
         goUrl = 'setElm.php';
     },
@@ -342,8 +361,9 @@ thingsToDo = {
         isDia = true;
 
         //submission.type = 'create';
-        eCreer.X = e.offsetX;
-        eCreer.Y = e.offsetY;
+        submission.percXY = [e.offsetX, e.offsetY];
+        //eCreer.X = e.offsetX;
+        //eCreer.Y = e.offsetY;
 
         goUrl = 'insertElm.php';
     },
@@ -376,17 +396,26 @@ thingsToDo = {
 
     'close': function () {
 
-        trace = null;
         supprClassAddedElm();
+        trace = null;
         submission = {};
         neighbours = [];
-        eCreer = {};
+        //eCreer = {};
         goUrl = '';
         isDia = false;
+        formCommand.reset();                                                    // réinitialiser les deux formulaires .. doit être avant editFormHasChange parce que
+        formEdit.reset();                                                       // l'évenement ('input').change() est tjrs actif
         editFormHasChange = false;
         commandFormHasChange = false;
         $('#parentDialogue').hide(500);
         viewer.className = 'supprMove';
+
+        //alert(editFormHasChange);
+
+    },
+
+    'nothing': function () {
+
     }
 
 };
@@ -400,14 +429,21 @@ function whatToDo(e, code){
         case 'C' :
             if(!isDia && isCommand && elmOCR)   return 'commandElmOCR';
             if(isDia && !calque && e.target !== trace && isCommand && elmOCR){
-                if(commandFormHasChange)    beforeWhatToDo('permissionOCR');
+                if(commandFormHasChange){
+                    beforeWhatToDo('permissionOCR');
+                    return 'nothing';
+                }
                 else return 'commandElmOCR';
             }
             if(isDia && !calque && e.target !== trace && isEdit) return 'selectORunselectNeighbour';
             break;
         case 'Db':
-            if(isEdit){
-                if(editFormHasChange)   beforeWhatToDo('alert');
+            if(isEdit && e.target !== trace){
+                if(editFormHasChange){
+                    //alert(editFormHasChange);
+                    beforeWhatToDo('alert');
+                    return 'nothing';
+                }
                 else{
                     if(calque)  return 'createElm';
                     else    return 'modifyElm'
@@ -436,7 +472,6 @@ calque.addEventListener('dblclick', function (e) {
 }, false);
 
 
-
 $('form').submit(function (event) {
 
     if($('#nom').val() !== '')   submission.nom = $('#nom').val();
@@ -449,52 +484,45 @@ $('form').submit(function (event) {
     if($('#nomDex').val() !== '')    submission.nomDex = $('#nomDex').val();
     if($('#location').val() !== '')    submission.location = $('#location').val();
 
+    if(!submission.typeElm){
+        $('[name="typeElm"]').each(function () {
+
+            if($(this).is(':checked'))  submission.typeElm = $(this).val();
+
+        });
+    }
+
     $('[name="formPoste"]').each(function () {
 
         if($(this).is(':checked'))  submission.formPoste = $(this).val();
 
     });
 
-
-    $('[name="theCommand"]').each(function () {
-
-        if($(this).is(':checked'))  submission.theCommand = $(this).val();
-
-    });
-
-
     if($('#powerPoste').val() !== '')    submission.powerPoste = $('#powerPoste').val();
 
-    if($('#commentaireCommand').val() !== '')    submission.commentaireCommand = $('#commentaireCommand').val();
-
     if(neighbours.length > 0)   submission.neighboursOk = neighbours;
+
+    if(isCommand){
+        $('[name="theCommand"]').each(function () {
+
+            $('#' + submission.targetId).removeClass($(this).val());
+            if($(this).is(':checked')){
+                submission.theCommand = $(this).val();
+                $('#' + submission.targetId).addClass($(this).val());
+
+            }
+
+        });
+
+        if($('#commentaireCommand').val() !== '')    submission.commentaireCommand = $('#commentaireCommand').val();
+    }
 
 
     console.log(submission);
     //alert(submission.typeElm);
 
 
-    $.ajax({
-            type:'POST',
-            url: goUrl,
-            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-            data: JSON.stringify(submission),
-            success: function(newId){
-
-                createElmProcess(newId, submission);
-                //updateElmProcess(trace.id, submission);
-
-                thingsToDo['close']();
-            },
-            error: function (result, statut, err) {
-                console.log('Problems');
-                console.log(statut);
-            },
-            complete: function (result, statut, err) {
-                console.log('complete');
-                console.log(statut);
-            }
-        });
+    insertORsetElm(submission, false);
 
 
     event.preventDefault();
@@ -502,7 +530,6 @@ $('form').submit(function (event) {
 
 
 });
-
 
 
 function beforeWhatToDo(type) {
@@ -543,9 +570,11 @@ function beforeWhatToDo(type) {
 function supprClassAddedElm() {
 
     $.each( saveClassAddToElm, function (theClass, theIds) {
-        theIds.forEach(function (t) {
-            if(t !== '')    $('#' + t).removeClass(theClass);
-        });
+        if(theIds.length > 0){
+            theIds.forEach(function (t) {
+                if(t !== '')    $('#' + t).removeClass(theClass);
+            });
+        }
     });
 
     saveClassAddToElm = {
@@ -553,69 +582,78 @@ function supprClassAddedElm() {
         'evidenceChild':[],
         'elmToUpdate':[],
         'neighbour':[]
-    }
+    };
 
 }
 
-function restituteInfosEdit(targetElmToEdit) {
+function influenceNeighbour(traceId) {
 
-    //recalculer les vrais offsetX et offsetY de l'élement
+    var submissionDeElmCall = {};
 
-    if($('#' + targetElmToEdit.id).find('+ ul').find('.typeElm').text() === 'poste'){
-        eCreer.X = (parseInt(targetElmToEdit.style.left) + pctWidthElmPoste/2)*widthCalque/100;
-        eCreer.Y = (parseInt(targetElmToEdit.style.top) + pctHeightElmPoste/2)*heightCalque/100;
-    }else {
-        eCreer.X = (parseInt(targetElmToEdit.style.left) + pctWidthElmOCR/2)*widthCalque/100;
-        eCreer.Y = (parseInt(targetElmToEdit.style.top) + pctHeightElmOCR/2)*heightCalque/100;
+    if(neighboursMvt.add.length > 0){
+        neighboursMvt.add.forEach(function (t) {
+            var voisinsDeElmCall = $('#' + t).find('+ ul').find('.neighboursOk').text();
+
+            if(voisinsDeElmCall === '') voisinsDeElmCall = [];
+            else  voisinsDeElmCall = voisinsDeElmCall.split(';');
+            voisinsDeElmCall.push(traceId);
+
+            submissionDeElmCall.targetId = t;
+            submissionDeElmCall.neighboursOk = voisinsDeElmCall;
+            insertORsetElm(submissionDeElmCall, true);
+
+            $('#' + t).find('+ ul').find('.neighboursOk').text(voisinsDeElmCall.join(';'));
+
+        });
     }
 
-    // restituer les voisins de l'élemnt à editer
-    var neighboursText = $('#' + targetElmToEdit.id).find('+ ul').find('.neighboursOk').text();
-    neighbours = neighboursText.split(';');
-    neighbours.forEach(function (voisinId) {
-        $(voisinId).addClass('neighbour');
-    });
-    saveClassAddToElm['neighbour'] = neighbours;
+    if(neighboursMvt.add.length > 0){
+        neighboursMvt.del.forEach(function (t){
+            var voisinsDeElmCall = $('#' + t).find('+ ul').find('.neighboursOk').text();
 
-    neighbours.forEach(function (t) {
-        if(t !== ''){
-            var neighActPrint = document.createElement('li');
-            $(neighActPrint).text($('#' + t).find('+ ul').find('.nom').text()).appendTo('#neigbhours');
-        }
-    });
-    $('#neigbhours').html('');
+            if(voisinsDeElmCall === '') voisinsDeElmCall = [];
+            else  voisinsDeElmCall = voisinsDeElmCall.split(';');
 
+            var num = voisinsDeElmCall.indexOf(traceId);
+            voisinsDeElmCall.splice(num,1);
 
-    // restituer les infos (records) de la bte de dialogue (pas de class list..., )
+            submissionDeElmCall.targetId = t;
+            submissionDeElmCall.neighboursOk = voisinsDeElmCall;
+            insertORsetElm(submissionDeElmCall,true);
 
-    var infosAll = $('#' + targetElmToEdit.id).find('+ ul').html();
+            $('#' + t).find('+ ul').find('.neighboursOk').text(voisinsDeElmCall.join(';'));
+        });
+    }
 
-    $('#record').find('ul').html(infosAll).find('li').removeClass('list-group-item p-2');
-
-    // restituer le formulaire edit
-
-    /*$('input[type="text"]').each(function () {
-        //var nomInput = $(this).attr('name');
-
-        $(this).val('jesus');
-    });
-
-    //var valOfElmType = $('#record').find('.typeElm').text();
-    //$('input[value = valO]')*/
-
+    neighboursMvt = {
+        'add':[],
+        'del':[]
+    };
 }
 
-function deleteElmProccess(trace) {
-    var idElm = trace.id;
+function insertORsetElm(submissionLocal, alreadyInfluence) {
+
+    var goUrlLocal = goUrl;
+    if(submissionLocal.targetId && submissionLocal.targetId !== '') goUrlLocal = 'setElm.php';
 
     $.ajax({
         type:'POST',
-        url: 'deleteElm.php',
+        url: goUrlLocal,
         contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-        data: idElm,
-        success: function(data){
-            $('#'+ idElm ).remove().find('+ ul').remove();
+        data: JSON.stringify(submissionLocal),
+        success: function(newId){
+
+            if(goUrlLocal === 'insertElm.php'){
+                createElmProcess(newId, submissionLocal);
+                influenceNeighbour(newId);
+            }
+            if(goUrlLocal === 'setElm.php') {
+                updateElmProcess(submissionLocal);
+                if(!alreadyInfluence)  influenceNeighbour(submissionLocal.targetId);
+            }
+
             thingsToDo['close']();
+
         },
         error: function (result, statut, err) {
             console.log('Problems');
@@ -628,10 +666,120 @@ function deleteElmProccess(trace) {
     });
 }
 
+function restituteInfosEdit(targetElmToEdit) {
+
+    // restituer les voisins de l'élement à editer
+    var neighboursText = $('#' + targetElmToEdit.id).find('+ ul').find('.neighboursOk').text();
+    if(neighboursText === '') neighbours = [];
+    else  neighbours = neighboursText.split(';');
+
+    neighbours.forEach(function (voisinId) {
+        if(voisinId !== '')   $('#' + voisinId).addClass('neighbour');
+    });
+    saveClassAddToElm['neighbour'] = neighbours;
+
+    $('#neigbhours').html('');
+    neighbours.forEach(function (t) {
+        if(t !== ''){
+            var neighActPrint = document.createElement('li');
+            $(neighActPrint).text($('#' + t).find('+ ul').find('.nom').text()).appendTo('#neigbhours');
+        }
+    });
+
+
+
+    // restituer les infos (records) de la bte de dialogue (pas de class list..., )
+
+    var infosAll = $('#' + targetElmToEdit.id).find('+ ul').html();
+
+    $('#record').find('ul').html(infosAll).find('li').removeClass('list-group-item p-2');
+
+    // restituer le formulaire edit
+
+    $('#editDialog').find('input').each(function () {
+        var nomInput = $(this).attr('name'),
+            valBd = $('#' + targetElmToEdit.id).find('+ ul').find('.' + nomInput).text();
+
+
+        if(valBd !== ''){
+            if(nomInput === 'typeElm'){
+                if(valBd === 'elmPoste')    $('#powFormPoste').show();
+                if(valBd === 'elmOCRDepart')    $('#departInstall').parent().show();
+                //alert(valBd);
+                $('[value =' + valBd + ']').prop('checked', true);
+            }else if(nomInput === 'formPoste')    $('[value =' + valBd + ']').prop('checked', true);
+            else   $(this).val(valBd);
+        }
+    });
+
+}
+
+function restituteInfosOCRCommand(targetElmToCommand) {
+    var nomElmToCommand = $('#' + targetElmToCommand).find('+ ul').find('.nom').text(),
+        theCommandLocal = $('#' + targetElmToCommand).find('+ ul').find('.theCommand').text();
+
+    $('#nomOCR').text(nomElmToCommand);
+    $('[value =' + theCommandLocal + ']').prop('checked', true);
+
+}
+
+function deleteElmProccess(idElm) {
+
+    $.ajax({
+        type:'POST',
+        url: 'deleteElm.php',
+        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+        data: idElm,
+        success: function(data){
+            var onIdsNeighbours = $('#' + idElm ).find('+ ul').find('.neighboursOk').text();
+
+            if(onIdsNeighbours !== ''){
+                onIdsNeighbours = onIdsNeighbours.split(';');
+                destroyInfluenceOf(idElm, onIdsNeighbours);
+            }
+
+            $('#'+ idElm ).remove().find('+ ul').remove();
+            thingsToDo['close']();
+        },
+        error: function (result, statut, err) {
+            console.log('Problems');
+            console.log(statut);
+        },
+        complete: function (result, statut, err) {
+            console.log('complete');
+            console.log(statut);
+        }
+    });
+
+
+}
+
+function destroyInfluenceOf(idElm, onIdsNeighbours) {
+
+    var submissionDeElmCall = {};
+    onIdsNeighbours.forEach(function (t){
+        var voisinsDeElmCall = $('#' + t).find('+ ul').find('.neighboursOk').text();
+
+        if(voisinsDeElmCall === '') voisinsDeElmCall = [];                                               // inutile, ils sont déjà voisins et confirmés
+        else  voisinsDeElmCall = voisinsDeElmCall.split(';');
+
+        var num = voisinsDeElmCall.indexOf(idElm);
+        voisinsDeElmCall.splice(num,1);
+
+        submissionDeElmCall.targetId = t;
+        submissionDeElmCall.neighboursOk = voisinsDeElmCall;
+        insertORsetElm(submissionDeElmCall,true);
+
+        $('#' + t).find('+ ul').find('.neighboursOk').text(voisinsDeElmCall.join(';'));
+    });
+}
+
 function createElmProcess(newId, submissionCreer) {
 
     var heightElm = '',
         widthElm = '',
+        leftElm = '',
+        topElm = '',
         //divParent = document.createElement('div'),
         elm = document.createElement('div'),
         infos = document.createElement('ul');
@@ -644,9 +792,15 @@ function createElmProcess(newId, submissionCreer) {
         if(submissionCreer.formPoste === 'rond') $(elm).addClass('rond');
         else $(elm).addClass('carre');
 
+        leftElm = (submissionCreer.percXY[0]*100/widthCalque - pctWidthElmPoste/2) + '%';
+        topElm = (submissionCreer.percXY[1]*100/heightCalque - pctHeightElmPoste/2) + '%';
+
     }else {
         heightElm = pctHeightElmOCR + '%';
         widthElm = pctWidthElmOCR + '%';
+
+        leftElm = (submissionCreer.percXY[0]*100/widthCalque - pctWidthElmOCR/2) + '%';
+        topElm = (submissionCreer.percXY[1]*100/heightCalque - pctHeightElmOCR/2) + '%';
 
         $(elm).addClass('OCR');
     }
@@ -656,10 +810,11 @@ function createElmProcess(newId, submissionCreer) {
     if(submissionCreer.neighboursOk) submissionCreer.neighboursOk = submissionCreer.neighboursOk.join(';');
 
 
-
-    $(elm).css({'font-size': 'inherit', 'position':'absolute', 'left':submissionCreer.percXY[0], 'top':submissionCreer.percXY[1], 'width':widthElm, 'height':heightElm})
+    $(elm).css({'font-size': 'inherit', 'position':'absolute', 'left':leftElm, 'top':topElm, 'width':widthElm, 'height':heightElm})
         .attr({'data-placement':'bottom', 'data-toggle':'popover','title':'Element réseau', 'data-trigger':'hover', 'id':newId})
         .appendTo('#calque');
+
+    submissionCreer.percXY = submissionCreer.percXY.join(';');
 
     $(infos).html(
         '             <li class="list-group-item d-none p-2" >Nom : <i class="nom font-weight-bold text-info"></i></li>' +
@@ -667,13 +822,15 @@ function createElmProcess(newId, submissionCreer) {
         '             <li class="list-group-item d-none p-2" >Départ Actuel : <i class="departActuel font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Départ Installé : <i class="departInstall font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Puissance : <i class="powerPoste font-weight-bold"></i> MW</li>' +
+        '             <li class="list-group-item d-none p-2" >Forme poste : <i class="formPoste font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Etat : <i class="theCommand font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Code : <i class="code font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Agence : <i class="nomAgence font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >DEX : <i class="nomDex font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Localisation : <i class="location font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Voisins : <i class="neighboursOk font-weight-bold"></i></li>' +
-        '             <li class="list-group-item d-none p-2" >Ordre : <i class="ordre font-weight-bold"></i></li>'
+        '             <li class="list-group-item d-none p-2" >Ordre : <i class="ordre font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Coordonnée X et Y : <i class="percXY font-weight-bold"></i></li>'
     ).css('display','none').addClass('list-group').appendTo('#calque');
 
 
@@ -683,9 +840,9 @@ function createElmProcess(newId, submissionCreer) {
         $(infos).find('i').each(function () {
             if($(this).hasClass(key)){
                 $(this).text(value);
-                if(key !== 'ordre' && key !== 'neighboursOk'){
-                    $(this).parent().removeClass('d-none');
-                }
+                $(this).parent().removeClass('d-none');
+
+                if(value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'formPoste')    $(this).parent().addClass('d-none');
                 //$(this).text(value).parent().removeClass('d-none');                         // pour le développement
             }
         });
@@ -701,13 +858,73 @@ function createElmProcess(newId, submissionCreer) {
 
 }
 
+function updateElmProcess(submissionUpdate) {
+
+    var heightElm = '',
+        widthElm = '',
+        leftElm = '',
+        topElm = '';
+
+    var percXY = $('#' + submissionUpdate.targetId).find('+ ul').find('.percXY').text();
+    percXY = percXY.split(';');
+
+    document.getElementById(submissionUpdate.targetId).className = '';
+
+    if (submissionUpdate.typeElm === 'elmPoste'){
+        heightElm = pctHeightElmPoste + '%';
+        widthElm = pctWidthElmPoste + '%';
+
+        leftElm = ((parseFloat(percXY[0]))*100/widthCalque - pctWidthElmPoste/2) + '%';
+        topElm = ((parseFloat(percXY[1]))*100/heightCalque - pctHeightElmPoste/2) + '%';
+
+        $('#' + submissionUpdate.targetId).addClass('poste');
+        if(submissionUpdate.formPoste === 'rond') $('#' + submissionUpdate.targetId).addClass('rond');
+        else $('#' + submissionUpdate.targetId).addClass('carre');
+
+    }else {
+        heightElm = pctHeightElmOCR + '%';
+        widthElm = pctWidthElmOCR + '%';
+
+        leftElm = ((parseFloat(percXY[0]))*100/widthCalque - pctWidthElmOCR/2) + '%';
+        topElm = ((parseFloat(percXY[1]))*100/heightCalque - pctHeightElmOCR/2) + '%';
+
+        $('#' + submissionUpdate.targetId).addClass('OCR');
+
+        if(isEdit){
+            submissionUpdate.theCommand = $('#' + submissionUpdate.targetId).find('+ ul').find('.theCommand').text();
+        }
+        $('#' + submissionUpdate.targetId).addClass(submissionUpdate.theCommand);
+    }
+
+    $('#' + submissionUpdate.targetId).css({'left':leftElm, 'top':topElm, 'width':widthElm, 'height':heightElm});
+
+
+
+    if(submissionUpdate.neighboursOk) submissionUpdate.neighboursOk = submissionUpdate.neighboursOk.join(';');
+
+    $.each( submissionUpdate, function (key, value) {
+        $('#' + submissionUpdate.targetId).find('+ ul').find('i').each(function () {
+            if($(this).hasClass(key)){
+                $(this).text(value);
+                $(this).parent().removeClass('d-none');
+
+                if(value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'formPoste')    $(this).parent().addClass('d-none');
+                //$(this).text(value).parent().removeClass('d-none');                         // pour le développement
+            }
+        });
+    });
+
+
+
+}
+
 
 
 /*calque.addEventListener('click', function (e) {                       // test de création d'élement à un endroit pécis prenant en compte la position
     // du curseur comme étant les coordonnées du centre de l'élement à créer
     var elm = document.createElement('button'),
-        widthCalque = parseInt(page1.style.width),
-        heightCalque = parseInt(page1.style.height);
+        widthCalque = parseFloat(page1.style.width),
+        heightCalque = parseFloat(page1.style.height);
 
     elm.innerHTML = '1 2';
 

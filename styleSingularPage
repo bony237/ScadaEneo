@@ -110,6 +110,7 @@ $colorBg: rgba(234, 234, 234, 0.89);
 
 
 #calque{
+
   .evidenceParent, .evidenceChild{
     @extend %elmPrepare;
   }
@@ -156,6 +157,7 @@ $colorBg: rgba(234, 234, 234, 0.89);
 
 
   .OCR{
+    @extend %elmPrepare;
     background-image: url("pins/noPinCalque.png");
   }
 

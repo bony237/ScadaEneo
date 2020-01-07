@@ -205,7 +205,7 @@ See https://github.com/adobe-type-tools/cmap-resources
           <div id="toolbarContainer" >
             <div id="toolbarViewer">
 
-              <a class="text-light bg-success rounded p-1 shadow font-weight-bold text-decoration-none" href="#" style="z-index: 1">Rapports</a>
+              <a class="text-light bg-success rounded p-1 shadow font-weight-bold text-decoration-none" target="_blank" href="rapportPage.html" style="z-index: 1">Rapports</a>
 
               <div id="toolbarViewerLeft">
 
@@ -398,7 +398,14 @@ See https://github.com/adobe-type-tools/cmap-resources
                     <label for="nomAgence">Agence : </label><input id="nomAgence" name="nomAgence" placeholder="nom d'agence" type="text" class="form-control" required>
                   </div>
                   <div class="form-group">
-                    <label for="nomDex">Direction d'exploitation : </label><input id="nomDex" name="nomDex" placeholder="direction d'exploitation" type="text" class="form-control" required>
+                    <label for="nomDex">Direction d'exploitation : </label>
+                      <select id="nomDex" name="nomDex" type="text" class="form-control" required>
+                          <option value="OUEST">Dex OUEST</option>
+                          <option value="EST">Dex EST</option>
+                          <option value="SUD">Dex SUD</option>
+                          <option value="NORD">Dex NORD</option>
+                          <option value="CENTRE">Dex CENTRE</option>
+                      </select>
                   </div>
                   <div class="form-group">
                     <label for="location">Localisation : </label><input id="location" name="location" placeholder="localisation de l'organe réseau" type="text" class="form-control" required>
@@ -424,7 +431,7 @@ See https://github.com/adobe-type-tools/cmap-resources
               </form>
 
               <div id="record">
-                <h4 class="mt-5 text-center">Données enregistrées</h4>
+                <h4 class="mt-5 text-center"><u>Données enregistrées</u></h4>
                 <ul>
             <!--  <li>Type : "IACM"</li>
                   <li>Nom : "maVie"</li>
@@ -438,21 +445,21 @@ See https://github.com/adobe-type-tools/cmap-resources
 
             <div id="commandDialog" class="mt-4" >
 
-              <h4 id="nomOCR" class="text-center">Afrimax (ouvert vers SCI été)</h4>
+              <h4 id="nomOCR" class="text-center"></h4>
               <table class="table">
                 <thead>
                 <tr>
-                  <th>Départ actuel</th>
+                  <th>Départ(s) actuel(s)</th>
                   <th>Installation actuelle en aval</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
-                  <td class="text-danger">D111 Koumassi</td>
+                  <td id="departsOCR" class="text-danger text-center">Aucun Départ</td>
                   <td>
                     <ul>
-                      <li><u id="nbrePosteAval" class="font-weight-bold">50</u> Postes</li>
-                      <li>Puissance installée : <u id="piAval" class="font-weight-bold">960</u> MW</li>
+                      <li><u id="nbrePosteAval" class="font-weight-bold">00</u> Postes</li>
+                      <li>Puissance installée : <u id="puiAval" class="font-weight-bold">00</u> MW</li>
                     </ul>
                   </td>
                 </tr>
@@ -463,7 +470,7 @@ See https://github.com/adobe-type-tools/cmap-resources
               <form>
                 <div class="form-group">
 
-                  <label class="font-weight-bold" title="Organe de coupure fermé"><input type="radio" name="theCommand" value="close">FERMER</label>
+                  <label class="font-weight-bold" title="Organe de coupure fermé"><input type="radio" name="theCommand" value="closeOCR">FERMER</label>
 
                   <label title="Ouverture Normale d'exploitation"><img src="pins/green_pinDialog.png" class="iconPinDialog" alt="Ouverture Normale d'exploitation"><input type="radio" name="theCommand" value="green"></label>
 
@@ -477,8 +484,13 @@ See https://github.com/adobe-type-tools/cmap-resources
                   <label for="commentaireCommand">Des informations sur la manoeuvre :</label>
                   <textarea id="commentaireCommand" name="commentaireCommand" class="form-control" rows="5"></textarea>
                 </div>
+
                 <input type="submit" class="btn btn-block btn-info font-weight-bold" value="Sauvegarder">
 
+                <div class="form-group">
+                  <h5 class="font-weight-bolder mt-5 text-black-50"><u>Observation dernière manoeuvre</u></h5>
+                  <p id="comments" class="font-italic">travail terminé sur le D13 Nkonbong</p>
+                </div>
               </form>
 
 

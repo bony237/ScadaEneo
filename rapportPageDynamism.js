@@ -19,19 +19,43 @@ offPostes();
 
 $('#selectDepart').click(function () {
     $('#divSelectDepart').toggle();
-});
+});         // affichage ou dissimulation du champ pour insérer le départ
 
+
+$('#inputSelectDepart').focus(function () {
+
+    dptsClose = [];
+    dptsOpen = [];
+
+    repertoryDeparts();
+    offPostes();
+
+    var valDpt = $('#inputSelectDepart').val();
+    if(valDpt !== ''){
+        (function () {
+
+
+            $('.noExist, .noClose, #rapportDepart').toggle(false);
+
+            creerRapportDepart(valDpt);
+
+            event.preventDefault();
+        })();
+    }
+});         //
 
 
 $('#formSelectDepart').submit(function (event) {
-    var valDpt = $('#inputSelectDepart').val();
+    (function () {
+        var valDpt = $('#inputSelectDepart').val();
 
-    $('.noExist, .noClose, #rapportDepart').toggle(false);
+        $('.noExist, .noClose, #rapportDepart').toggle(false);
 
-    creerRapportDepart(valDpt);
+        creerRapportDepart(valDpt);
 
-    event.preventDefault();
-});
+        event.preventDefault();
+    })();
+});     // submission du départ à analyser
 
 /*  Fin !
 * */
@@ -46,7 +70,7 @@ function creerRapportDepart(depart) {
             },
             filtreLimits = {
                 'departActuel': {'$regex': depart, '$options': 'i'},
-                'typeElm': { '$in': ['elmOCRIACM', 'elmOCRPoste'] },
+                'typeElm': { '$in': ['elmOCRIACM', 'elmOCRPoste', 'elmOCRDepart'] },
                 'theCommand': {
                     '$ne': 'closeOCR'
                 }
@@ -139,10 +163,10 @@ function getAndFixLimits(filtre) {
 
                 data.forEach(function (t) {
                     var limit = document.createElement('i');
-                    $(limit).text(t.nom).addClass('badge badge-pill badge-info text-monospace').appendTo('#limitDepart');
+                    $(limit).text(t.nom).addClass('badge badge-pill badge-info text-monospace mx-1').appendTo('#limitDepart');
                 });
             }
-            else $('#limitDepart').html('Limite(s) du départ : <i class="font-weight-bold">Aucunes limites</i>');
+            else $('#limitDepart').html('Limite(s) du départ : <i class="font-weight-bold">Aucunes limites</i> ');
 
 
         },
@@ -311,7 +335,7 @@ var energDexAgenOnDpt = {
 
 }
 
-function restituteRapport() {
+/*function restituteRapport() {
 
     $.each(energDexAgenOnDpt, function (key, value) {
 
@@ -388,4 +412,4 @@ function restituteRapport() {
             }
         }
     });
-}
+}*/

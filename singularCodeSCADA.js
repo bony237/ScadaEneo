@@ -3,7 +3,8 @@
 *    au dessus du viewer un calque interactif.
  */
 
-var page1 = null,                                                    // schéma de carte à suivre
+var FIRST_MUTATION_DONE = false,                                     // après que la première aapparition de #page1 ait été faite
+    page1 = null,                                                    // schéma de carte à suivre
     calque = document.createElement('div'),                          // création du calque (vide) interactif
     elmToTrack = document.getElementById('viewer'),                  // parent de section PDF à traquer pour assurer la cohérence du calque avec le PDF cartographique
     elmToShut = document.getElementById('sidebarToggle'),            // élement ayant été comme embarrassant et dont l'existance est contraint par l'API "PDF JS"
@@ -54,7 +55,10 @@ var observerPdf = new MutationObserver(function (mutationList) {            // t
                     elmToShut.dispatchEvent(event);           // simulation d'un event click pour enlever l'apparition génante d'un élement (apparition ordonnée par un fichier JS difficile d'accès)
                 }
 
-                getAllElms();                           // fonction appel de la BD et pour intégration des élements dans le calque
+                if(!FIRST_MUTATION_DONE){
+                    getAllElms();
+                    FIRST_MUTATION_DONE = true;
+                }            // fonction appel de la BD et pour intégration des élements dans le calque
 
 
                 throw BreakException;
@@ -78,7 +82,6 @@ observerPdf.observe(elmToTrack, {
 *   Dynamisme de l'application web
 *
 * */
-
 
 var isEdit = false,                                                     // état du mode edit (sommes nous en mode edit ?)
     isCommand = true,                                                   // état du mode command (sommes nous en mode command ?)
@@ -376,6 +379,7 @@ thingsToDo = {
         isDia = true;
 
         submission.percXY = [e.offsetX, e.offsetY];
+        submission.ctePercXY = [widthCalque, heightCalque];
 
         goUrl = 'insertElm.php';
     },                      // série d'action lors de la création d'un elm
@@ -425,6 +429,10 @@ thingsToDo = {
         $('#parentDialogue').hide(500);
         viewer.className = 'supprMove';
 
+        $('#neigbhours').html('<li class="text-danger"><i>Aucuns voisins !</i></li>');      // si en edit mode
+        $('#comments').html('');                                    // si en command mode
+        $('#neigbhours').parent().siblings().show();             // si l'action entreprise était la modification d'un élement
+
     },                           // marque de fin d'un traitement important (il se matérialise par une initialisation des variables globales, remise à defaut de l'apparence de l'interface)
 
     'nothing': function () {
@@ -435,7 +443,8 @@ thingsToDo = {
 
 function whatToDo(e, code){
     var elmOCR = e.target.classList.contains('OCR'),
-        calque = (e.target.id === 'calque');
+        calque = (e.target.id === 'calque'),
+        indicPos = (e.target.id === 'indicPos');
 
 
     switch (code){
@@ -450,7 +459,7 @@ function whatToDo(e, code){
                 else return 'commandElmOCR';
             }
 
-            if(isDia && !calque && e.target !== trace && isEdit) return 'selectORunselectNeighbour';
+            if(isDia && !calque && !indicPos && e.target !== trace && isEdit) return 'selectORunselectNeighbour';
 
             break;
 
@@ -478,6 +487,8 @@ calque.addEventListener('click', function (e) {
 }, false);
 
 calque.addEventListener('dblclick', function (e) {
+
+    //  //  // initDptOdrPossVoisin(); \\ \\ \\
     var doThis = whatToDo(e, 'Db');
     thingsToDo[doThis](e);
 
@@ -527,7 +538,7 @@ $('form').submit(function (event) {
 
         });
 
-        if($('#commentaireCommand').val() !== '')    submission.commentaireCommand = $('#commentaireCommand').val();
+        submission.commentaireCommand = $('#commentaireCommand').val();             // ne pas mettre de commentaire est aussi une infos
     }
 
     if(isEdit)   submission.departInstall = $('#departInstall').val();
@@ -1014,8 +1025,8 @@ function createElmProcess(newId, submissionCreer) {
         if(submissionCreer.formPoste === 'rond') $(elm).addClass('rond');
         else $(elm).addClass('carre');
 
-        leftElm = (submissionCreer.percXY[0]*100/widthCalque - pctWidthElmPoste/2) + '%';
-        topElm = (submissionCreer.percXY[1]*100/heightCalque - pctHeightElmPoste/2) + '%';
+        leftElm = (submissionCreer.percXY[0]*100/submissionCreer.ctePercXY[0] - pctWidthElmPoste/2) + '%';
+        topElm = (submissionCreer.percXY[1]*100/submissionCreer.ctePercXY[1] - pctHeightElmPoste/2) + '%';
 
     }else {
         zIndexParentElm = '2';
@@ -1023,14 +1034,14 @@ function createElmProcess(newId, submissionCreer) {
             heightElm = pctHeightElmPoste + '%';
             widthElm = pctWidthElmPoste + '%';
 
-            leftElm = (submissionCreer.percXY[0]*100/widthCalque - pctWidthElmPoste/2) + '%';
-            topElm = (submissionCreer.percXY[1]*100/heightCalque - pctHeightElmPoste/2) + '%';
+            leftElm = (submissionCreer.percXY[0]*100/submissionCreer.ctePercXY[0] - pctWidthElmPoste/2) + '%';
+            topElm = (submissionCreer.percXY[1]*100/submissionCreer.ctePercXY[1] - pctHeightElmPoste/2) + '%';
         }else{
             heightElm = pctHeightElmOCR + '%';
             widthElm = pctWidthElmOCR + '%';
 
-            leftElm = (submissionCreer.percXY[0]*100/widthCalque - pctWidthElmOCR/2) + '%';
-            topElm = (submissionCreer.percXY[1]*100/heightCalque - pctHeightElmOCR/2) + '%';
+            leftElm = (submissionCreer.percXY[0]*100/submissionCreer.ctePercXY[0] - pctWidthElmOCR/2) + '%';
+            topElm = (submissionCreer.percXY[1]*100/submissionCreer.ctePercXY[1] - pctHeightElmOCR/2) + '%';
         }
 
         $(elm).addClass('OCR');
@@ -1059,6 +1070,7 @@ function createElmProcess(newId, submissionCreer) {
         .appendTo($(divParent));
 
     submissionCreer.percXY = submissionCreer.percXY.join(';');
+    submissionCreer.ctePercXY = submissionCreer.ctePercXY.join(';');
 
     $(infos).html(
         '             <li class="list-group-item d-none p-2" >Nom : <i class="nom font-weight-bold text-info"></i></li>' +
@@ -1076,7 +1088,8 @@ function createElmProcess(newId, submissionCreer) {
         '             <li class="list-group-item d-none p-2" >Num prochains voisins OCR : <i class="possibleNumChildsOCR font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Ordre : <i class="ordre font-weight-bold"></i></li>' +
         '             <li class="list-group-item d-none p-2" >Commentaires : <i class="commentaireCommand font-weight-bold"></i></li>' +
-        '             <li class="list-group-item d-none p-2" >Coordonnée X et Y : <i class="percXY font-weight-bold"></i></li>'
+        '             <li class="list-group-item d-none p-2" >Coordonnée X et Y : <i class="percXY font-weight-bold"></i></li>' +
+        '             <li class="list-group-item d-none p-2" >Réference des coordonnées X et Y : <i class="ctePercXY font-weight-bold"></i></li>'
     ).css('display','none').addClass('list-group').appendTo($(divParent));
 
 
@@ -1088,7 +1101,7 @@ function createElmProcess(newId, submissionCreer) {
                 $(this).text(value);
                 $(this).parent().removeClass('d-none');
 
-                var toHide = (value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'formPoste' || key === 'possibleNumChildsOCR' || key === 'commentaireCommand');
+                var toHide = (value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'ctePercXY' || key === 'formPoste' || key === 'possibleNumChildsOCR' || key === 'commentaireCommand');
                 if(toHide)    $(this).parent().addClass('d-none');
                 //$(this).text(value).parent().removeClass('d-none');                         // pour le développement
             }
@@ -1114,9 +1127,16 @@ function updateElmProcess(submissionUpdate) {
             topElm = '',
             zIndexParentElm = '';
 
-        var percXY = $('#' + submissionUpdate.targetId).find('+ ul').find('.percXY').text();
-        if(percXY !== '')   percXY = percXY.split(';');
-        else percXY = [];
+        var percXY = $('#' + submissionUpdate.targetId).find('+ ul').find('.percXY').text(),
+            ctePercXY = $('#' + submissionUpdate.targetId).find('+ ul').find('.ctePercXY').text();
+        if(percXY !== ''){
+            percXY = percXY.split(';');
+            ctePercXY = ctePercXY.split(';');
+        }
+        else{
+            percXY = [];
+            ctePercXY = [];
+        }
 
         document.getElementById(submissionUpdate.targetId).className = '';
 
@@ -1125,8 +1145,8 @@ function updateElmProcess(submissionUpdate) {
             widthElm = pctWidthElmPoste + '%';
             zIndexParentElm = '1';
 
-            leftElm = ((parseFloat(percXY[0]))*100/widthCalque - pctWidthElmPoste/2) + '%';
-            topElm = ((parseFloat(percXY[1]))*100/heightCalque - pctHeightElmPoste/2) + '%';
+            leftElm = ((parseFloat(percXY[0]))*100/parseFloat(ctePercXY[0]) - pctWidthElmPoste/2) + '%';
+            topElm = ((parseFloat(percXY[1]))*100/parseFloat(ctePercXY[1]) - pctHeightElmPoste/2) + '%';
 
             $('#' + submissionUpdate.targetId).addClass('poste');
             if(submissionUpdate.formPoste === 'rond') $('#' + submissionUpdate.targetId).addClass('rond');
@@ -1138,14 +1158,14 @@ function updateElmProcess(submissionUpdate) {
                 heightElm = pctHeightElmPoste + '%';
                 widthElm = pctWidthElmPoste + '%';
 
-                leftElm = ((parseFloat(percXY[0]))*100/widthCalque - pctWidthElmPoste/2) + '%';
-                topElm = ((parseFloat(percXY[1]))*100/heightCalque - pctHeightElmPoste/2) + '%';
+                leftElm = ((parseFloat(percXY[0]))*100/parseFloat(ctePercXY[0]) - pctWidthElmPoste/2) + '%';
+                topElm = ((parseFloat(percXY[1]))*100/parseFloat(ctePercXY[1]) - pctHeightElmPoste/2) + '%';
             }else{
                 heightElm = pctHeightElmOCR + '%';
                 widthElm = pctWidthElmOCR + '%';
 
-                leftElm = ((parseFloat(percXY[0]))*100/widthCalque - pctWidthElmOCR/2) + '%';
-                topElm = ((parseFloat(percXY[1]))*100/heightCalque - pctHeightElmOCR/2) + '%';
+                leftElm = ((parseFloat(percXY[0]))*100/parseFloat(ctePercXY[0]) - pctWidthElmOCR/2) + '%';
+                topElm = ((parseFloat(percXY[1]))*100/parseFloat(ctePercXY[1]) - pctHeightElmOCR/2) + '%';
             }
 
             $('#' + submissionUpdate.targetId).addClass('OCR');
@@ -1183,7 +1203,7 @@ function updateElmProcess(submissionUpdate) {
                 $(this).text(value);
                 $(this).parent().removeClass('d-none');
 
-                var toHide = (value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'formPoste' || key === 'possibleNumChildsOCR' || key === 'commentaireCommand');
+                var toHide = (value === '' || key === 'ordre' || key === 'neighboursOk' || key === 'percXY' || key === 'ctePercXY' || key === 'formPoste' || key === 'possibleNumChildsOCR' || key === 'commentaireCommand');
                 if(toHide)    $(this).parent().addClass('d-none');
                 //$(this).text(value).parent().removeClass('d-none');                         // pour le développement
             }
@@ -1748,12 +1768,14 @@ function influenceEnergyOrdreNeighbours(dptParent, ordreParent, voisinsElmId, id
     *   idOfParent : reférence de l'élement ayant appelé la fonction (donneur d'ordre)
     * */
 
-    var toInfluenced = [];
+    var localSubmissionInfluenced = [],
+        cancelDueToBouclage = false,
+        actionToResolveBouclage = {};
                            //par Hypothèse un élément à influencer n'a soit pas de départ (lastDpt = ''), ou il n'a qu'un départ (lastDpt = 'jujiok')
 
     voisinsElmId.forEach(function (idVoisin) {                                                  // boucle sur chaque élement à influencer
         if(idVoisin !== ''){
-            //var submissionInfluenced = {},                                                                  // enregistrement les modifications faites aux élements réseaux
+                                                                                                 // enregistrement les modifications faites aux élements réseaux
             var elmType = $('#' + idVoisin).find('+ ul').find('.typeElm').text(),                           // type de l'élement influencé
                 elmCommand = $('#' + idVoisin).find('+ ul').find('.theCommand').text(),                     // status de l'élement influencé (ouvert : pas de transmission, fermer : tranmettre)
                 lastDptActuelText = $('#' + idVoisin).find('+ ul').find('.departActuel').text(),            // départ(s) actuellement présent(s) sur l'OCR à influencer
@@ -1770,22 +1792,22 @@ function influenceEnergyOrdreNeighbours(dptParent, ordreParent, voisinsElmId, id
 
                 if(lastDptActuelText === '' && elmType !== 'elmOCRDepart'){
 
-                    var indOrdre = numOCRChoix(idOfParent);
                     console.log('transmission de l\'énergie au voisin');
                     var submissionInfluenced = {
                         'targetId': idVoisin,
                         'departActuel': dptParent,
-                        'ordre': ordreParent + '.' + indOrdre
+                        'ordre': ordreParent + '.',
+                        'waitingOrdre': true
                     };
 
-                    setElmAfterCalcul(submissionInfluenced);
+                    if(elmCommand === 'closeOCR')  submissionInfluenced.toInfluenced = true;
+
+                    localSubmissionInfluenced.push(submissionInfluenced);
 
 
-                    if(elmCommand === 'closeOCR')  toInfluenced.push(submissionInfluenced);
                 }       // élement n'ayant aucun départ (actuel)
-                else if(lastDptActuelText !== '' || elmType === 'elmOCRDepart'){
+                else if((lastDptActuelText !== '' || elmType === 'elmOCRDepart') && !(/;/.test(lastDptActuelText))){            // à plus de deux départ, interdiction d'y insérer un autre
 
-                    var indOrdre = numOCRChoix(idOfParent);
                     var commandAssign = elmCommand,
                         idToCommand = idVoisin;
 
@@ -1796,7 +1818,16 @@ function influenceEnergyOrdreNeighbours(dptParent, ordreParent, voisinsElmId, id
                         if(lastDptActuelText === dptParent && elmType !== 'elmOCRDepart'){
                             idToCommand = idOfParent;
                             console.log('bouclage sur le même départ détecté' + dptParent + ' et réglé au point' + idToCommand);
-                            destroyInfluenceEnergyOrdreNeighbours(idToCommand, []);
+
+                            if(!cancelDueToBouclage){
+                                cancelDueToBouclage = true;
+                                actionToResolveBouclage = {
+                                    'theCommand': commandAssign,
+                                    'targetId': idToCommand,
+                                    'departActuel': lastDptActuelText + ';' + dptParent,
+                                    'ordre': lastOrdreText + '.' + numOCRChoix(idVoisin) + ';' + ordreParent
+                                };
+                            }   //destroyInfluenceEnergyOrdreNeighbours(idToCommand, []);
                         }
                         else{
                             idToCommand = idVoisin;
@@ -1805,30 +1836,30 @@ function influenceEnergyOrdreNeighbours(dptParent, ordreParent, voisinsElmId, id
                         }
 
                     }
-                    /*else {
-                        dptAssign = lastDptActuelText + ';' + dptParent;
-                        'ordre': lastOrdreText + ';' + ordreParent + '.' + indOrdre
-                    }*/
 
                     var submissionInfluenced = {
                         'theCommand': commandAssign,
                         'targetId': idToCommand,
                         'departActuel': lastDptActuelText + ';' + dptParent,
-                        'ordre': lastOrdreText + ';' + ordreParent + '.' + indOrdre
+                        'ordre': lastOrdreText + ';' + ordreParent + '.',
+                        'waitingOrdre': true
                     };
 
-                    setElmAfterCalcul(submissionInfluenced);
+                    localSubmissionInfluenced.push(submissionInfluenced);
+
                 }       // élement (ocr) ayant déja un départ (actuel ou installé)
 
             }       // element OCR (ocrPoste, IACM, ocrDépart)
-            else {         //if(elmType === 'OCRPoste')
+            else {
                 if(lastDptActuelText !== dptParent){
                     var submissionInfluenced = {
                         'targetId': idVoisin,
                         'departActuel': dptParent,
                         'ordre': ordreParent + '.' + 'P'
                     };
-                    setElmAfterCalcul(submissionInfluenced);
+
+                    localSubmissionInfluenced.push(submissionInfluenced);
+
                 }
 
             }       // element poste à influencer
@@ -1837,60 +1868,94 @@ function influenceEnergyOrdreNeighbours(dptParent, ordreParent, voisinsElmId, id
 
     });                     // boucle sur chaque élement à influencer, determination de l'action futur à mener
 
-// il est idéal d'avoir traité tous les elments enfants d'un parent avant d'aller influencer ses petit fils car ces derniers peuvent de manière erroné,
+    if(!cancelDueToBouclage && localSubmissionInfluenced.length > 0){
+
+        var toInfluenced = [];
+
+        localSubmissionInfluenced.forEach(function (submissionVerified) {
+            if(submissionVerified.waitingOrdre){
+                delete  submissionVerified.waitingOrdre;
+                submissionVerified.ordre = submissionVerified.ordre + numOCRChoix(idOfParent);
+
+                if(submissionVerified.toInfluenced){
+                    delete submissionVerified.toInfluenced;
+                    toInfluenced.push(submissionVerified);
+                }
+            }
+
+            setElmAfterCalcul(submissionVerified);
+        });
+
+        // il est idéal d'avoir traité tous les elments enfants d'un parent avant d'aller influencer ses petit fils car ces derniers peuvent de manière erroné,
 // influencer leurs ainés car ces derniers n'ayant pas encore été traité par la boucle.
 
-    if(toInfluenced.length > 0){
-        toInfluenced.forEach(function (data) {
-            var voisinsChilds = $('#' + data.targetId).find('+ ul').find('.neighboursOk').text();           // String
+        if(toInfluenced.length > 0){
+            toInfluenced.forEach(function (data) {
+                var voisinsChilds = $('#' + data.targetId).find('+ ul').find('.neighboursOk').text();           // String
 
 
-            if(voisinsChilds !== ''){
-                voisinsChilds = voisinsChilds.split(';');                                       // []
-                var numNoChilds = [];
-                console.log( voisinsChilds);
-                voisinsChilds.forEach(function (voisin) {
-                    var voisinDpt = '',
-                        isElmDepart = ($('#' + voisin).find('+ ul').find('.typeElm').text() === 'elmOCRDepart'),
-                        voisinOrdre1 = $('#' + voisin).find('+ ul').find('.ordre').text(),
-                        voisinOrdre2 = voisinOrdre1;
+                if(voisinsChilds !== ''){
+                    voisinsChilds = voisinsChilds.split(';');                                       // []
 
-                    if(isElmDepart)   voisinDpt = $('#' + voisin).find('+ ul').find('.departInstall').text();
-                    else  voisinDpt = $('#' + voisin).find('+ ul').find('.departActuel').text();
+                    var numNoChilds = [];
+                    numNoChilds.push(voisinsChilds.indexOf(idOfParent));
 
-                    voisinOrdre2 = voisinOrdre2.slice(0, -2);
+                    voisinsChilds.forEach(function (voisin) {
+                         /*var voisinDpt = '',
+                            isElmDepart = ($('#' + voisin).find('+ ul').find('.typeElm').text() === 'elmOCRDepart'),
+                            voisinOrdre1 = $('#' + voisin).find('+ ul').find('.ordre').text(),
+                            voisinOrdre2 = voisinOrdre1;
 
-                    console.log([voisinOrdre1, voisinOrdre2]);
+                        if(isElmDepart)   voisinDpt = $('#' + voisin).find('+ ul').find('.departInstall').text();
+                        else  voisinDpt = $('#' + voisin).find('+ ul').find('.departActuel').text();
 
-                    //console.log("l'ordre papa ou frère : " + voisinOrdre1 + " ou " + voisinOrdre2 + "\n et le papa est " + dptParent);
+                        voisinOrdre2 = voisinOrdre2.slice(0, -2);
 
-                    if(voisinDpt === dptParent && (voisinOrdre1 === ordreParent || voisinOrdre2 === ordreParent)){                                                       // même départ
+                        console.log([voisinOrdre1, voisinOrdre2]);
 
-                        numNoChilds.push(voisinsChilds.indexOf(voisin));
-                    }
-                });
+                        //console.log("l'ordre papa ou frère : " + voisinOrdre1 + " ou " + voisinOrdre2 + "\n et le papa est " + dptParent);
+
+                        if(voisinDpt === dptParent && (voisinOrdre1 === ordreParent || voisinOrdre2 === ordreParent)){                                                       // même départ
+
+                            numNoChilds.push(voisinsChilds.indexOf(voisin));
+                        }*/
+
+                         /*who is my papa ? : is idOfParent*/                                       // already push
+                         /*who are my brothers ? : is voisin who have papa who is idOfParent*/
+
+                         var papasVoisin = theyAreMyFathers(voisin);
+
+                         if(papasVoisin.targetId.indexOf(idOfParent) >= 0){
+                             numNoChilds.push(voisinsChilds.indexOf(voisin));
+                         }          // he is my brother
 
 
-
-                if(numNoChilds.length > 0){
-                    numNoChilds.sort(function(a, b){ return b - a });                               // ranger par ordre décroissant avant le processus de suppression
-                    console.log(numNoChilds);
-                    numNoChilds.forEach(function (num) {
-                        voisinsChilds.splice(num, 1);
                     });
+
+
+
+                    if(numNoChilds.length > 0){
+                        numNoChilds.sort(function(a, b){ return b - a });                               // ranger par ordre décroissant avant le processus de suppression
+                        //console.log(numNoChilds);
+                        numNoChilds.forEach(function (num) {
+                            voisinsChilds.splice(num, 1);
+                        });
+                    }
+
+                }else voisinsChilds = [];
+
+
+                if(voisinsChilds.length > 0 ){
+                    influenceEnergyOrdreNeighbours(data.departActuel, data.ordre, voisinsChilds, data.targetId);
+                    console.log('influence à nouveau');
                 }
+            });                         // boucle sur les actions futurs et fixation des voisins à effectivement influencer
+        }       // règle1: un voisin est effectivement à influencer s'il n'est ni le père, ni un frère du donneur d'ordre
+    }
+    else if(cancelDueToBouclage) {
+        setElmAfterCalcul(actionToResolveBouclage);
+    }
 
-            }else voisinsChilds = [];
-
-            console.log('voisins redondant test');
-            console.log( voisinsChilds);
-
-            if(voisinsChilds.length > 0 ){
-                influenceEnergyOrdreNeighbours(data.departActuel, data.ordre, voisinsChilds, data.targetId);
-                console.log('influence à nouveau');
-            }
-        });                         // boucle sur les actions futurs et fixation des voisins à effectivement influencer
-    }       // règle1: un voisin est effectivement à influencer s'il n'est ni le père, ni un frère du donneur d'ordre
 
 
 }
@@ -2060,34 +2125,37 @@ function theyAreMyFathers(idFilsOpen) {
             'ordre': []
         };
 
-    getParentOrdre = getParentOrdre.split(';');
-    departActuel = departActuel.split(';');
+    if(getParentOrdre !== ''){
+        getParentOrdre = getParentOrdre.split(';');
+        departActuel = departActuel.split(';');
 
-    getParentOrdre[0] = getParentOrdre[0].slice(0, -2);
-    if(getParentOrdre[1])  getParentOrdre[1] = getParentOrdre[1].slice(0, -2);
+        getParentOrdre[0] = getParentOrdre[0].slice(0, -2);
+        if(getParentOrdre[1])  getParentOrdre[1] = getParentOrdre[1].slice(0, -2);
 
 
-    if(neighboursLocal !== ''){
-        neighboursLocal = neighboursLocal.split(';');
+        if(neighboursLocal !== ''){
+            neighboursLocal = neighboursLocal.split(';');
 
-        neighboursLocal.forEach(function (neighbourId) {
-            var isClose = ($('#' + neighbourId).find('+ ul').find('.theCommand').text() === 'closeOCR'),
-                departNei = $('#' + neighbourId).find('+ ul').find('.departActuel').text(),
-                ordreNei = $('#' + neighbourId).find('+ ul').find('.ordre').text();
+            neighboursLocal.forEach(function (neighbourId) {
+                var isClose = ($('#' + neighbourId).find('+ ul').find('.theCommand').text() === 'closeOCR'),
+                    departNei = $('#' + neighbourId).find('+ ul').find('.departActuel').text(),
+                    ordreNei = $('#' + neighbourId).find('+ ul').find('.ordre').text();
 
-            var numDpt = departActuel.indexOf(departNei),
-                numOrdre = getParentOrdre.indexOf(ordreNei);
+                var numDpt = departActuel.indexOf(departNei),
+                    numOrdre = getParentOrdre.indexOf(ordreNei);
 
-            if(numDpt >= 0 && numOrdre === numDpt && isClose){          // && numOrdre >= 0
+                if(numDpt >= 0 && numOrdre === numDpt && isClose){          // && numOrdre >= 0
 
-                response.targetId.push(neighbourId);
-                response.depart.push(departNei);
-                response.ordre.push(ordreNei);
+                    response.targetId.push(neighbourId);
+                    response.depart.push(departNei);
+                    response.ordre.push(ordreNei);
 
-            }
-        });
-    }                      // []
-    //else    neighboursLocal = [];
+                }
+            });
+        }                      // []
+        //else    neighboursLocal = [];
+    }
+    //else // he have no fathers
 
 
     return response;
@@ -2189,3 +2257,55 @@ function refreshNumOCRSpecialDel(idElmDel) {
         refreshNumOCR(papas.targetId[1], ordre[1]);
     }
 }
+
+
+
+function initDptOdrPossVoisin () {
+    var submissionInitPoste = {
+            'departActuel': '',
+            'ordre': ''
+        },
+        submissionInitOCR = {
+            'departActuel': '',
+            'ordre': '',
+            'possibleNumChildsOCR': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        },
+        submissionInitDepart = {
+            'possibleNumChildsOCR': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        };
+
+    $('.OCR, .poste').each(function () {
+        var typeElm = $(this).find('+ ul').find('.typeElm').text(),
+            submissionInit = {};
+
+
+        //console.log(submissionInit);
+
+        if(typeElm === 'elmOCRDepart')  submissionInit = submissionInitDepart;
+        else if(typeElm === 'elmPoste') submissionInit = submissionInitPoste;
+        else submissionInit = submissionInitOCR;
+
+        submissionInit.targetId = $(this).attr('id');
+
+        $.ajax({
+            type:'POST',
+            url: 'setElm.php',
+            async: false,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            data: JSON.stringify(submissionInit),
+            success: function(data){
+                console.log('ok');
+            },
+            error: function (result, statut, err) {
+                console.log('Problems');
+                console.log(statut);
+            },
+            complete: function (result, statut, err) {
+                console.log('complete');
+                console.log(statut);
+            }
+        });
+
+    });
+
+}             // en cours de création !!!, doit prendre en compte l'attribution de num aux enfants d'un élement

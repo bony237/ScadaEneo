@@ -1,8 +1,15 @@
-$colorBg: rgba(234, 234, 234, 0.89);
-#calque {
-
+.Commande{
   .OCR, .poste{
-    background-color: $colorBg;
+    background-color: rgba(234, 234, 234, 0.4);
+  }
+}
+.Edition{
+  .OCR, .poste{
+    background-color: rgba(234, 234, 234, 0.945);
+  }
+}
+#calque {
+  .OCR, .poste{
     border-radius: 12.5%;
   }
   .rond, .rond:before, .rond:after{
@@ -14,7 +21,7 @@ $colorBg: rgba(234, 234, 234, 0.89);
 
 }
 %elmPrepare {
-  background-color: rgba(234, 234, 234, 0.63);
+  background-color: rgba(234, 234, 234, 0.672);
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
@@ -39,7 +46,7 @@ $colorBg: rgba(234, 234, 234, 0.89);
   position: absolute;
   top: -5%;
   left: -5%;
-  background: linear-gradient(45deg, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000, #fb0094,#0000ff, #00ff00, #ffff00, #ff0000);
+  background: linear-gradient(45deg, #fb009298,#0000ff91, #00ff0096, #ffff0098, #ff000086, #fb009296,#0000ffa2, #00ff009a, #ffff00a6, #ff00009a);
   background-size: 400%;
   width: 110%;
   height: 110%;
